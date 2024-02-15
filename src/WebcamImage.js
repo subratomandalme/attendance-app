@@ -1,9 +1,13 @@
 import React, { useCallback, useRef, useState } from "react";
 import Webcam from "react-webcam";
+import { fetchLocation } from './utils';
 
 function WebcamImage() {
   const [img, setImg] = useState(null);
   const webcamRef = useRef(null);
+
+  // fetch status
+  const checkin = localStorage.getItem("checkin") ?? false;
 
   const videoConstraints = {
     width: 420,
@@ -12,8 +16,23 @@ function WebcamImage() {
   };
 
   const capture = useCallback(() => {
+    // IMAGE
+    // DATETIME
+    // LOCATION
+
     const imageSrc = webcamRef.current.getScreenshot();
     setImg(imageSrc);
+
+    const date = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    const location = await fetchLocation({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 5000
+    });
+    console.log(`Latitude: ${location.lat}, Longitude: ${location.long}`);
+
+    localStorage.setItem("checkin",!checkin);
   }, [webcamRef]);
 
   return (
