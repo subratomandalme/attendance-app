@@ -1,63 +1,58 @@
-import React, { useCallback, useRef, useState } from "react";
-import Webcam from "react-webcam";
-import { fetchLocation } from './utils';
+import React, { useState, useCallback, useRef } from 'react';
+import Webcam from 'react-webcam';
+import { fetchLocation } from './locationFetch'; // Ensure this path matches where your fetchLocation function is defined
 
-function WebcamImage() {
-  const [img, setImg] = useState(null);
+const WebcamImage = () => {
   const webcamRef = useRef(null);
+  const [imgSrc, setImgSrc] = useState(null);
+  const [userLocation, setUserLocation] = useState({ lat: null, long: null });
+  const [dateTime, setDateTime] = useState('');
+  const [error, setError] = useState(null);
 
-  // fetch status
-  const checkin = localStorage.getItem("checkin") ?? false;
-
-  const videoConstraints = {
-    width: 420,
-    height: 420,
-    facingMode: "user",
-  };
-
-  const capture = useCallback(() => {
-    // IMAGE
-    // DATETIME
-    // LOCATION
-
+  const captureAndFetchLocation = useCallback(() => {
     const imageSrc = webcamRef.current.getScreenshot();
-    setImg(imageSrc);
+    setImgSrc(imageSrc);
 
-    const date = new Date().toISOString().slice(0, 19).replace('T', ' ');
-
-    const location = await fetchLocation({
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 5000
+    // Fetch and display the location
+    fetchLocation().then(location => {
+      setUserLocation(location);
+      setError(null);
+    }).catch(err => {
+      setError(err);
     });
-    console.log(`Latitude: ${location.lat}, Longitude: ${location.long}`);
 
-    localStorage.setItem("checkin",!checkin);
-  }, [webcamRef]);
+    // Get and display the current date and time
+    const now = new Date();
+    const formattedDateTime = now.toLocaleString(); // Formats date and time based on the user's locale
+    setDateTime(formattedDateTime);
+  }, []);
 
   return (
-    <div className="Container">
-      {img === null ? (
-        <>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div>
+        {imgSrc ? (
+          <img src={imgSrc} alt="Captured" style={{ maxWidth: '100%', height: 'auto' }} />
+        ) : (
           <Webcam
             audio={false}
-            mirrored={true}
-            height={400}
-            width={400}
             ref={webcamRef}
             screenshotFormat="image/jpeg"
-            videoConstraints={videoConstraints}
+            style={{ maxWidth: '100%', height: 'auto' }}
           />
-          <button onClick={capture}>Capture photo</button>
-        </>
-      ) : (
-        <>
-          <img src={img} alt="screenshot" />
-          <button onClick={() => setImg(null)}>Retake</button>
-        </>
+        )}
+      </div>
+      <button onClick={captureAndFetchLocation} style={{ marginTop: '20px' }}>Capture</button>
+      {dateTime && <p>Date & Time: {dateTime}</p>}
+      {userLocation.lat && userLocation.long && (
+        <p>
+          Latitude: {userLocation.lat}<br />
+          Longitude: {userLocation.long}
+        </p>
       )}
+      {error && <p>Error: {error}</p>}
+      {imgSrc && <button onClick={() => setImgSrc(null)} style={{ marginTop: '10px' }}>Retake Photo</button>}
     </div>
   );
-}
+};
 
-export default WebcamImage; 
+export default WebcamImage;
