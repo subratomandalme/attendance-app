@@ -1,63 +1,74 @@
-import React, { useCallback, useRef, useState } from "react";
-import Webcam from "react-webcam";
-import { fetchLocation } from './utils';
+import React, { useState, useCallback, useRef } from 'react';
+import Webcam from 'react-webcam';
+import { fetchLocation } from './locationFetch'; // Ensure this is correctly imported
 
-function WebcamImage() {
-  const [img, setImg] = useState(null);
+const AttendanceApp = () => {
   const webcamRef = useRef(null);
+  const [attendanceStatus, setAttendanceStatus] = useState({ startedDuty: false, stoppedDuty: false });
+  const [imgSrc, setImgSrc] = useState({ startDuty: null, stopDuty: null });
+  const [attendanceInfo, setAttendanceInfo] = useState({ startDuty: null, stopDuty: null });
+  const [error, setError] = useState(null);
 
-  // fetch status
-  const checkin = localStorage.getItem("checkin") ?? false;
-
-  const videoConstraints = {
-    width: 420,
-    height: 420,
-    facingMode: "user",
-  };
-
-  const capture = useCallback(() => {
-    // IMAGE
-    // DATETIME
-    // LOCATION
-
+  const handleAttendance = useCallback((action) => {
     const imageSrc = webcamRef.current.getScreenshot();
-    setImg(imageSrc);
+    const now = new Date().toLocaleString();
 
-    const date = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    fetchLocation().then(location => {
+      setError(null);
+      setImgSrc(prevState => ({ ...prevState, [action]: imageSrc }));
+      setAttendanceInfo(prevState => ({
+        ...prevState,
+        [action]: {
+          time: now,
+          location: location,
+        },
+      }));
 
-    const location = await fetchLocation({
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 5000
+      if (action === 'startDuty') {
+        setAttendanceStatus(prevState => ({ ...prevState, startedDuty: true }));
+      } else if (action === 'stopDuty') {
+        setAttendanceStatus(prevState => ({ ...prevState, stoppedDuty: true }));
+      }
+    }).catch(err => {
+      setError(err);
     });
-    console.log(`Latitude: ${location.lat}, Longitude: ${location.long}`);
-
-    localStorage.setItem("checkin",!checkin);
-  }, [webcamRef]);
+  }, []);
 
   return (
-    <div className="Container">
-      {img === null ? (
-        <>
-          <Webcam
-            audio={false}
-            mirrored={true}
-            height={400}
-            width={400}
-            ref={webcamRef}
-            screenshotFormat="image/jpeg"
-            videoConstraints={videoConstraints}
-          />
-          <button onClick={capture}>Capture photo</button>
-        </>
-      ) : (
-        <>
-          <img src={img} alt="screenshot" />
-          <button onClick={() => setImg(null)}>Retake</button>
-        </>
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+        style={{ maxWidth: '100%', height: 'auto', marginBottom: '20px' }}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '10px' }}>
+        {!attendanceStatus.startedDuty && 
+          <button onClick={() => handleAttendance('startDuty')} style={{ marginBottom: '10px' }}>Start Duty</button>
+        }
+        {attendanceStatus.startedDuty && 
+          <button onClick={() => handleAttendance('stopDuty')}>Stop Duty</button>
+        }
+      </div>
+      {error && <p>Error: {error}</p>}
+      <div style={{ textAlign: 'center' }}>
+        {attendanceInfo.startDuty && (
+          <>
+            <h3>Start Duty Time: {attendanceInfo.startDuty.time}</h3>
+            <p>Location: Lat {attendanceInfo.startDuty.location.lat}, Long {attendanceInfo.startDuty.location.long}</p>
+            {imgSrc.startDuty && <img src={imgSrc.startDuty} alt="Start Duty" style={{ maxWidth: '100%', height: 'auto' }} />}
+          </>
+        )}
+        {attendanceInfo.stopDuty && (
+          <>
+            <h3>Stop Duty Time: {attendanceInfo.stopDuty.time}</h3>
+            <p>Location: Lat {attendanceInfo.stopDuty.location.lat}, Long {attendanceInfo.stopDuty.location.long}</p>
+            {imgSrc.stopDuty && <img src={imgSrc.stopDuty} alt="Stop Duty" style={{ maxWidth: '100%', height: 'auto' }} />}
+          </>
+        )}
+      </div>
     </div>
   );
-}
+};
 
-export default WebcamImage; 
+export default AttendanceApp;
