@@ -1,0 +1,35 @@
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.login-logo {
+  margin-bottom: 20px;
+  /* Add styles for your logo here */
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  width: 300px; /* Adjust width as needed */
+}
+
+.login-form input,
+.login-form button {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 10px; /* This makes the corners smooth */
+  outline: none;
+}
+
+.login-form button {
+  background-color: #0d0c0c; /* Replace with your button color */
+  color: white;
+  cursor: pointer;
+}
+
+/* Adjust the colors and sizes as per your design. */
